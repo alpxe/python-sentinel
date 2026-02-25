@@ -6,51 +6,45 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[('bgm.mp3', '.')],
-    hiddenimports=[],
+    hiddenimports=['win32gui'],
     hookspath=[],
-    hooksconfig={
-        'PyQt5': {
-            'qt_plugins':['platforms']
-        }
-    },
+    hooksconfig={},
     runtime_hooks=[],
     excludes=[
-        'PyQt5.QtWebEngine',
-        'PyQt5.QtWebEngineWidgets',
-        'PyQt5.QtWebKit',
-        'PyQt5.QtWebKitWidgets',
-        'PyQt5.QtMultimedia',
-        'PyQt5.QtMultimediaWidgets',
-        'PyQt5.QtSql',
-        'PyQt5.QtSqlWidgets',
-        'PyQt5.QtChart',
-        'PyQt5.QtDataVisualization',
-        'PyQt5.QtNetwork',
-        'PyQt5.QtNetworkAuth',
-        'PyQt5.QtNfc',
-        'PyQt5.QtBluetooth',
-        'PyQt5.QtPositioning',
-        'PyQt5.QtLocation',
-        'PyQt5.QtSensors',
-        'PyQt5.QtSerialPort',
-        'PyQt5.QtSerialBus',
-        'PyQt5.QtCanvas3D',
-        'PyQt5.Qt3D',
-        'PyQt5.QtOpenGL',
-        'PyQt5.QtPrintSupport',
-        'PyQt5.QtSvg',
-        'PyQt5.QtSvgWidgets',
-        'PyQt5.QtTest',
-        'PyQt5.QtXml',
-        'PyQt5.QtXmlPatterns',
-        'PyQt5.QtHelp',
-        'PyQt5.QtDesigner',
-        'PyQt5.QtUiTools',
-        'PyQt5.QtDBus'
+        'pygame', 'numpy', 'matplotlib', 'pandas', 'tkinter',
+        'PyQt5.QtWebEngine', 'PyQt5.QtWebEngineCore', 'PyQt5.QtWebEngineWidgets',
+        'PyQt5.QtWebKit', 'PyQt5.QtWebKitWidgets',
+        'PyQt5.QtSql', 'PyQt5.QtTest', 'PyQt5.QtXml', 'PyQt5.QtDesigner',
+        'PyQt5.QtPrintSupport', 'PyQt5.QtBluetooth', 'PyQt5.QtLocation',
+        'PyQt5.QtPositioning', 'PyQt5.QtSensors', 'PyQt5.QtSvg',
+        'libcrypto', 'libssl', 'opengl32sw'
     ],
     noarchive=False,
-    optimize=1,
+    optimize=2,
 )
+
+# --- 强力割肉环节 ---
+# 定义我们要彻底干掉的关键词（不区分大小写）
+excluded_dlls = [
+    'opengl32sw', 'd3dcompiler', 'qt5quick', 'qt5qml',
+    'qt5svg', 'qt5sql', 'qt5test', 'qt5xml', 'qt5designer'
+]
+
+def is_excluded(name):
+    name = name.lower()
+    for skip in excluded_dlls:
+        if skip in name:
+            return True
+    return False
+
+# 重新构建二进制列表
+old_count = len(a.binaries)
+a.binaries = [x for x in a.binaries if not is_excluded(x[0])]
+new_count = len(a.binaries)
+
+print(f"\n[瘦身成功] 删除了 {old_count - new_count} 个多余二进制文件！\n")
+# --------------------
+
 pyz = PYZ(a.pure)
 
 exe = EXE(

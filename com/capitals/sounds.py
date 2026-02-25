@@ -1,56 +1,50 @@
-import pygame
+from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
+from PyQt5.QtCore import QUrl
 from com.base.singleton import Singleton
+import os
 
 
 class Sounds(Singleton):
-    music_playing = False
-    current_music = None
-
+    _player = None
     url = ""
+    _should_be_playing = False  # 逻辑开关，标记用户是否想要播放
 
     def __single__(self):
-        pygame.init()
-        pygame.mixer.init()
+        self._player = QMediaPlayer()
+        # 监听状态改变
+        self._player.stateChanged.connect(self.__handle_state_changed)
 
-        self.music_playing = False
-        self.current_music = None
+    def __handle_state_changed(self, state):
+        # 只有当【播放自然结束】且【逻辑上仍需要播放】时，才触发重播
+        if state == QMediaPlayer.StoppedState and self._should_be_playing:
+            self._player.play()
 
-    def play_music(self, music_file, loop=-1):
-        """
-        播放音乐
-        :param music_file: 音乐文件路径
-        :param loop: 循环次数，-1表示无限循环，0表示不循环，1表示循环1次
-        """
-        if self.music_playing:
-            self.stop_music()
+    def play_music(self):
+        if not os.path.exists(self.url):
+            return
 
-        pygame.mixer.music.load(music_file)
-        pygame.mixer.music.play(loop)
-        self.music_playing = True
-        self.current_music = music_file
+        # 检查当前设置的媒体是否已经是该文件，避免重复加载导致的“卡顿”
+        file_url = QUrl.fromLocalFile(os.path.abspath(self.url))
+        content = QMediaContent(file_url)
 
-    def stop_music(self):
-        if self.music_playing:
-            pygame.mixer.music.stop()
-            self.music_playing = False
-            self.current_music = None
+        # 只有路径变了才重新 setMedia，否则直接 play
+        if self._player.media().canonicalUrl() != file_url:
+            self._player.setMedia(content)
 
-    def get_current_music(self):
-        return self.current_music
+        self._player.play()
 
     def verify_playing(self, b: bool = True):
+        # 更新逻辑开关
+        self._should_be_playing = b
+
         if len(self.url) < 3:
             return
 
         if b:
-            if not Sounds().music_playing:
-                # 使用loop=1表示播放1次（即总共播放1遍）
-                Sounds().play_music(self.url, loop=-1)
+            # 如果没在播，就让它播
+            if self._player.state() != QMediaPlayer.PlayingState:
+                self.play_music()
         else:
-            if Sounds().music_playing:
-                Sounds().stop_music()
-
-    def reset_music(self):
-        """重置音乐状态，允许重新播放"""
-        self.music_playing = False
-        self.current_music = None
+            # 如果正在播，就停掉
+            if self._player.state() == QMediaPlayer.PlayingState:
+                self._player.stop()
