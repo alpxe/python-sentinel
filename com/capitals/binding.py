@@ -58,10 +58,13 @@ class Binding(Singleton):
 
         self.roles = [{"hwnd": hwnd, "name": name, "pid": pid} for hwnd, name, pid in windows]
 
-        for item in self.roles:
-            print(f"子窗口句柄:{item}")
-
     def has_pid(self, pid):
+        for index, obj in enumerate(self.roles):
+            if obj["pid"] == pid:
+                return True
+
+        # 更新子窗口,再次查找
+        self.__masses(self.leader)
         for index, obj in enumerate(self.roles):
             if obj["pid"] == pid:
                 return True

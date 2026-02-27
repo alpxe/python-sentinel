@@ -1,10 +1,12 @@
 import os
+from datetime import datetime
 
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog
 import sys
 
 from com.capitals.binding import Binding
+from com.capitals.pusher import Pusher
 from com.capitals.sounds import Sounds
 from com.view.page import Ui_Dialog
 
@@ -16,6 +18,8 @@ class MainForm(QMainWindow, Ui_Dialog):
 
     pid = None
     hwnd = None  # 大窗口
+
+    count = 0
 
     def __init__(self, parent=None):
         super().__init__()
@@ -44,6 +48,7 @@ class MainForm(QMainWindow, Ui_Dialog):
 
     def init_event(self):
         self.lineEdit.textChanged.connect(self.__text_changed_handler)
+        self.phoneEdit.textChanged.connect(self.__phone_changed_handler)
         self.musicBtn.clicked.connect(self.__music_click_handler)
 
         # 创建定时器
@@ -55,6 +60,15 @@ class MainForm(QMainWindow, Ui_Dialog):
         text = e.strip()
         if text:
             self.pid = text
+        else:
+            # 如果输入全是空格，可以给出提示
+            if e and not text:
+                print("当前只输入了空格")
+
+    def __phone_changed_handler(self, e):
+        text = e.strip()
+        if text:
+            Pusher().phone = text
         else:
             # 如果输入全是空格，可以给出提示
             if e and not text:
@@ -77,8 +91,9 @@ class MainForm(QMainWindow, Ui_Dialog):
         else:
             print("用户取消了选择")
 
-    def __update(self):
-        playing = False
+    def __judge(self):
+        """最终判断 0:无情况  1:网络错误  2:子号闪退"""
+        playing = False  # 判断子号是否存在
         multiple = False
         if self.hwnd > 0 and not Binding().minimized():
             if self.pid and len(self.pid) > 3:
@@ -89,12 +104,25 @@ class MainForm(QMainWindow, Ui_Dialog):
                     playing = True  # 号不在
 
         if multiple and playing:
-            Sounds().verify_playing(True)
+            return 2
         else:
-            if Binding().network():
-                Sounds().verify_playing(False)
-            else:
-                Sounds().verify_playing(True)
+            return 0 if Binding().network() else 1
+
+    def __update(self):
+        flag = self.__judge()
+        if flag == 0:
+            Sounds().verify_playing(False)
+            self.count = 0
+        else:
+            Sounds().verify_playing(True)
+            tips = "网络错误" if flag == 1 else "游戏闪退"
+            tips += f"  {datetime.now().strftime('%Y-%m-%d,%H:%M:%S')}"
+
+            if self.count == 0:
+                Pusher().send_msg(tips)
+
+            self.count += 1
+            self.count %= 10
 
 
 if __name__ == '__main__':
