@@ -23,10 +23,12 @@
 访问[飞书官网](https://www.feishu.cn/download),下载APP,并用手机注册账号.
 
 加我进组织,就可以了
-![](./card.jpg)
 
-最后效果如下:
-![](./renderings.jpg)
+<img src="./card.jpg" alt="飞书二维码" width="220">
+
+
+最后效果如下:  
+<img src="./renderings.jpg" alt="效果图" width="220">
 
 ### 打包指令
 
